@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💝 约会确认</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="card-icon">🎉</div>
+    <h1>她答应了！💕</h1>
+    <p class="subtitle" id="resultMessage"></p>
+
+    <div class="result-card">
+      <div class="result-item">
+        <strong>📅 约会日期</strong>
+        <div class="result-value" id="resultDate"></div>
+      </div>
+      <div class="result-item">
+        <strong>🍽️ 一起吃什么</strong>
+        <div class="result-value" id="resultFood"></div>
+      </div>
+    </div>
+
+    <p style="color:#d81b60; font-size:16px; margin-top:8px; font-weight:600;">快去准备吧！别迟到哦～ 😘</p>
+    <button class="btn-copy" id="btnShare" onclick="shareResult()">📤 分享这个页面</button>
+  </div>
+
+  <div id="loading" style="text-align:center; color:#d81b60; z-index:1; position:relative;">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;">加载中...</p>
+  </div>
+
+  <div class="card error-state hidden" id="errorState">
+    <div class="card-icon">😢</div>
+    <h1>找不到这个结果</h1>
+    <p class="subtitle">链接可能有问题～</p>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const supabase = createClient(
+      'https://lajhfebszkkpvdjeyock.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhamhmZWJzemtrcHZkamV5b2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NjE0MzYsImV4cCI6MjA5OTQzNzQzNn0.p7ovoAFm1wjpDHaEisbrZFMMl2Z66443GZHGRBdrW_E'
+    );
+
+    const params = new URLSearchParams(window.location.search);
+    const invitationId = params.get('id');
+
+    // 浮动爱心
+    (function() {
+      const c = document.getElementById('heartsBg');
+      const e = ['❤️','💕','💖','💗','💝','✨','💐','🌸','🎉','🥂'];
+      for (let i = 0; i < 20; i++) {
+        const s = document.createElement('span');
+        s.className = 'heart-float';
+        s.textContent = e[Math.floor(Math.random() * e.length)];
+        s.style.left = Math.random() * 100 + '%';
+        s.style.animationDelay = Math.random() * 8 + 's';
+        s.style.animationDuration = (5 + Math.random() * 10) + 's';
+        s.style.fontSize = (18 + Math.random() * 30) + 'px';
+        c.appendChild(s);
+      }
+    })();
+
+    async function load() {
+      const ld = document.getElementById('loading');
+      const card = document.getElementById('resultCard');
+      const err = document.getElementById('errorState');
+
+      if (!invitationId) { ld.style.display = 'none'; err.classList.remove('hidden'); return; }
+
+      try {
+        const { data, error } = await supabase
+          .from('invitations').select('*').eq('id', invitationId).single();
+
+        if (error || !data) throw new Error('Not found');
+
+        ld.style.display = 'none';
+
+        if (data.status === 'accepted') {
+          card.style.display = '';
+          document.getElementById('resultMessage').textContent = '💬 ' + data.message;
+          document.getElementById('resultDate').textContent = data.selected_date || '???';
+          document.getElementById('resultFood').textContent = data.selected_food || '???';
+        } else {
+          card.style.display = '';
+          document.querySelector('#resultCard .card-icon').textContent = '⏳';
+          document.querySelector('#resultCard h1').textContent = '还在等待回复...';
+          document.querySelector('#resultCard .subtitle').textContent = '💬 ' + data.message;
+          document.querySelector('#resultCard .result-card').style.display = 'none';
+          document.querySelector('#resultCard .btn-copy').style.display = 'none';
+          document.querySelector('#resultCard p:last-of-type').textContent = 'Ta 还没有做出选择，再等等吧～';
+        }
+      } catch (e) {
+        console.error(e);
+        ld.style.display = 'none';
+        err.classList.remove('hidden');
+      }
+    }
+
+    load();
+
+    window.shareResult = function() {
+      const url = window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: '💝 约会确认', text: '看看 Ta 答应了什么！', url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).then(() => showToast('✅ 链接已复制！')).catch(() => showToast('复制失败'));
+      }
+    };
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2500);
+    }
+  </script>
+</body>
+</html>

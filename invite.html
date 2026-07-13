@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💝 有人邀请你约会</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <!-- ====== Loading / Error ====== -->
+  <div id="pageLoading" style="text-align:center; color:#d81b60; z-index:1; position:relative;">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;">加载邀请信息...</p>
+  </div>
+
+  <div class="card error-state hidden" id="pageError">
+    <div class="card-icon">😢</div>
+    <h1>找不到这个邀请</h1>
+    <p class="subtitle">链接可能过期了，或者被删除了<br>让 Ta 重新发一个吧～</p>
+  </div>
+
+  <!-- ====== 主卡片（包含三个画面） ====== -->
+  <div class="card screen-card hidden" id="mainCard">
+
+    <!-- ===== 画面一：接受/拒绝 ===== -->
+    <div class="screen active" id="screenAccept">
+      <div class="card-icon">💌</div>
+      <h1>有人想约你！</h1>
+      <p class="subtitle" id="inviteMessage" style="font-size:20px; font-weight:600; color:#d81b60;"></p>
+      <p style="color:#ad1457; opacity:0.7; margin-bottom:8px;">Ta 在等你回复哦～</p>
+
+      <div class="btn-row" id="btnRow" style="position:relative;">
+        <button class="btn btn-primary heartbeat" id="btnAccept">💕 好呀！接受邀请</button>
+        <button class="btn btn-reject" id="btnReject">💔 拒绝</button>
+      </div>
+      <p id="rejectHint" style="margin-top:20px; font-size:12px; color:#9e9e9e; opacity:0.6;"></p>
+    </div>
+
+    <!-- ===== 画面二：选日期时间 ===== -->
+    <div class="screen" id="screenDateTime">
+      <div class="card-icon">📅</div>
+      <h1>太棒了！🎉</h1>
+      <p class="subtitle">先选个约会时间吧～</p>
+
+      <!-- 年月日 -->
+      <div class="input-group">
+        <label>📆 日期</label>
+        <div class="date-picker-row">
+          <select id="selYear" class="nice-select"></select>
+          <span class="picker-label">年</span>
+          <select id="selMonth" class="nice-select"></select>
+          <span class="picker-label">月</span>
+          <select id="selDay" class="nice-select"></select>
+          <span class="picker-label">日</span>
+        </div>
+      </div>
+
+      <!-- 时分 -->
+      <div class="input-group">
+        <label>⏰ 时间</label>
+        <div class="date-picker-row">
+          <select id="selHour" class="nice-select"></select>
+          <span class="picker-label">时</span>
+          <select id="selMinute" class="nice-select"></select>
+          <span class="picker-label">分</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnToFood" style="width:100%; margin-top:8px;">
+        下一步：选吃的 🍽️
+      </button>
+      <button class="btn btn-back" id="btnBackAccept" style="width:100%; margin-top:8px;">← 返回</button>
+    </div>
+
+    <!-- ===== 画面三：选食物 ===== -->
+    <div class="screen" id="screenFood">
+      <div class="card-icon">🍽️</div>
+      <h1>想吃什么？</h1>
+      <p class="subtitle">可以多选哦，把想吃的都点上～</p>
+
+      <div class="input-group">
+        <label>🍜 选你馋的（可多选）</label>
+        <div class="food-grid" id="foodGrid"></div>
+      </div>
+
+      <input type="text" class="custom-input" id="customFood" placeholder="或者自己写一个想吃的... 🍜" maxlength="50">
+
+      <div class="selected-foods" id="selectedFoodsTags" style="min-height:24px; margin:8px 0;"></div>
+
+      <button class="btn btn-primary" id="btnSubmit" style="width:100%;">💌 确认，生成结果</button>
+      <button class="btn btn-back" id="btnBackDateTime" style="width:100%; margin-top:8px;">← 返回</button>
+
+      <div id="loading2" class="hidden">
+        <div class="spinner"></div>
+        <p style="color:#ad1457;">正在保存...</p>
+      </div>
+
+      <div id="resultLinkBox" class="hidden">
+        <div class="link-box">
+          <span class="link-label">🎉 约会确认！把这个链接发给 Ta</span>
+          <span id="resultLink"></span>
+        </div>
+        <button class="btn-copy" id="btnCopyResult" onclick="copyResultLink()">📋 复制链接</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const supabase = createClient(
+      'https://lajhfebszkkpvdjeyock.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhamhmZWJzemtrcHZkamV5b2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NjE0MzYsImV4cCI6MjA5OTQzNzQzNn0.p7ovoAFm1wjpDHaEisbrZFMMl2Z66443GZHGRBdrW_E'
+    );
+
+    const params = new URLSearchParams(window.location.search);
+    const invitationId = params.get('id');
+
+    const pageLoading = document.getElementById('pageLoading');
+    const pageError = document.getElementById('pageError');
+    const mainCard = document.getElementById('mainCard');
+
+    let invitation = null;
+    let selectedDateStr = '';
+    let selectedFoods = new Set();
+    let rejectAttempts = 0;
+
+    // ===== 浮动爱心 =====
+    (function() {
+      const c = document.getElementById('heartsBg');
+      const e = ['❤️','💕','💖','💗','💝','✨','💐','🌸'];
+      for (let i = 0; i < 12; i++) {
+        const s = document.createElement('span');
+        s.className = 'heart-float';
+        s.textContent = e[Math.floor(Math.random() * e.length)];
+        s.style.left = Math.random() * 100 + '%';
+        s.style.animationDelay = Math.random() * 8 + 's';
+        s.style.animationDuration = (6 + Math.random() * 8) + 's';
+        s.style.fontSize = (16 + Math.random() * 24) + 'px';
+        c.appendChild(s);
+      }
+    })();
+
+    // ===== 加载邀请 =====
+    async function loadInvitation() {
+      if (!invitationId) { pageLoading.style.display = 'none'; pageError.classList.remove('hidden'); return; }
+      try {
+        const { data, error } = await supabase.from('invitations').select('*').eq('id', invitationId).single();
+        if (error || !data) throw new Error('Not found');
+        invitation = data;
+        if (data.status === 'accepted') { window.location.href = 'result.html?id=' + invitationId; return; }
+        pageLoading.style.display = 'none';
+        mainCard.classList.remove('hidden');
+        document.getElementById('inviteMessage').textContent = '💬 ' + data.message;
+      } catch (err) {
+        console.error(err);
+        pageLoading.style.display = 'none';
+        pageError.classList.remove('hidden');
+      }
+    }
+    loadInvitation();
+
+    // ===== 画面切换 =====
+    function switchScreen(fromId, toId) {
+      const from = document.getElementById(fromId);
+      const to = document.getElementById(toId);
+      from.classList.add('exit-left');
+      setTimeout(() => {
+        from.classList.remove('active', 'exit-left');
+        to.classList.add('active');
+        setTimeout(() => to.classList.remove('enter-right'), 450);
+      }, 350);
+    }
+
+    function switchScreenBack(fromId, toId) {
+      const from = document.getElementById(fromId);
+      const to = document.getElementById(toId);
+      from.classList.add('exit-right');
+      setTimeout(() => {
+        from.classList.remove('active', 'exit-right');
+        to.classList.add('enter-left');
+        to.classList.add('active');
+        setTimeout(() => to.classList.remove('enter-left'), 450);
+      }, 350);
+    }
+
+    // ===== 拒绝按钮（仅点击逃跑）=====
+    const btnReject = document.getElementById('btnReject');
+    const rejectHint = document.getElementById('rejectHint');
+
+    btnReject.addEventListener('click', (e) => {
+      e.preventDefault();
+      rejectAttempts++;
+      moveReject();
+      updateRejectState();
+    });
+
+    function updateRejectState() {
+      if (rejectAttempts === 1) rejectHint.textContent = '🤔 诶？点不到吧？';
+      else if (rejectAttempts === 3) rejectHint.textContent = '😏 别挣扎了，选接受吧～';
+      else if (rejectAttempts === 6) rejectHint.textContent = '😤 放弃吧！只能选接受！';
+      else if (rejectAttempts >= 10) rejectHint.textContent = '😂 已经' + rejectAttempts + '次了... 从了吧～';
+    }
+
+    function moveReject() {
+      // 第一次点击时把按钮移到 body，摆脱卡片 overflow:hidden 的限制
+      if (btnReject.parentElement !== document.body) {
+        const rect = btnReject.getBoundingClientRect();
+        document.body.appendChild(btnReject);
+        btnReject.style.position = 'fixed';
+        btnReject.style.left = rect.left + 'px';
+        btnReject.style.top = rect.top + 'px';
+      }
+      const btnRect = btnReject.getBoundingClientRect();
+      const maxX = window.innerWidth - btnRect.width - 20;
+      const maxY = window.innerHeight - btnRect.height - 20;
+      btnReject.style.position = 'fixed';
+      btnReject.style.left = Math.max(10, Math.random() * maxX) + 'px';
+      btnReject.style.top = Math.max(10, Math.random() * maxY) + 'px';
+      btnReject.style.transition = 'all 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
+      btnReject.style.zIndex = '999';
+    }
+
+    // ===== 接受 → 进入日期画面 =====
+    document.getElementById('btnAccept').addEventListener('click', () => {
+      btnReject.style.display = 'none';
+      switchScreen('screenAccept', 'screenDateTime');
+      buildDatePickers();
+    });
+
+    // 返回按钮
+    document.getElementById('btnBackAccept').addEventListener('click', () => {
+      switchScreenBack('screenDateTime', 'screenAccept');
+    });
+    document.getElementById('btnBackDateTime').addEventListener('click', () => {
+      switchScreenBack('screenFood', 'screenDateTime');
+    });
+
+    // ===== 日期时间选择器 =====
+    function buildDatePickers() {
+      const now = new Date();
+      const thisYear = now.getFullYear();
+
+      // 年份：今年 + 未来2年
+      const selYear = document.getElementById('selYear');
+      selYear.innerHTML = '';
+      for (let y = thisYear; y <= thisYear + 2; y++) {
+        selYear.innerHTML += `<option value="${y}">${y}</option>`;
+      }
+      selYear.value = thisYear;
+
+      // 月份
+      const selMonth = document.getElementById('selMonth');
+      selMonth.innerHTML = '';
+      for (let m = 1; m <= 12; m++) {
+        selMonth.innerHTML += `<option value="${m}">${m}</option>`;
+      }
+      selMonth.value = now.getMonth() + 1;
+
+      // 时
+      const selHour = document.getElementById('selHour');
+      selHour.innerHTML = '';
+      for (let h = 0; h <= 23; h++) {
+        selHour.innerHTML += `<option value="${h}">${String(h).padStart(2,'0')}</option>`;
+      }
+      selHour.value = 18; // 默认下午6点
+
+      // 分
+      const selMinute = document.getElementById('selMinute');
+      selMinute.innerHTML = '';
+      for (let m = 0; m <= 59; m++) {
+        selMinute.innerHTML += `<option value="${m}">${String(m).padStart(2,'0')}</option>`;
+      }
+      selMinute.value = 0;
+
+      updateDayOptions();
+      selYear.addEventListener('change', updateDayOptions);
+      selMonth.addEventListener('change', updateDayOptions);
+    }
+
+    function updateDayOptions() {
+      const y = parseInt(document.getElementById('selYear').value);
+      const m = parseInt(document.getElementById('selMonth').value);
+      const daysInMonth = new Date(y, m, 0).getDate(); // 0号 = 上个月最后一天
+      const selDay = document.getElementById('selDay');
+      const prevDay = selDay.value;
+      selDay.innerHTML = '';
+      for (let d = 1; d <= daysInMonth; d++) {
+        selDay.innerHTML += `<option value="${d}">${d}</option>`;
+      }
+      selDay.value = Math.min(prevDay || 999, daysInMonth);
+    }
+
+    // ===== 下一步：食物画面 =====
+    document.getElementById('btnToFood').addEventListener('click', () => {
+      const y = document.getElementById('selYear').value;
+      const m = document.getElementById('selMonth').value;
+      const d = document.getElementById('selDay').value;
+      const h = document.getElementById('selHour').value;
+      const min = document.getElementById('selMinute').value;
+      selectedDateStr = `${y}年${m}月${d}日 ${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+      switchScreen('screenDateTime', 'screenFood');
+      buildFoodGrid();
+    });
+
+    // ===== 食物多选 =====
+    function buildFoodGrid() {
+      const grid = document.getElementById('foodGrid');
+      const foods = [
+        { emoji:'🍣', name:'日料' },{ emoji:'🍲', name:'火锅' },{ emoji:'🥩', name:'西餐' },
+        { emoji:'🍖', name:'烧烤' },{ emoji:'🍕', name:'披萨' },{ emoji:'🍜', name:'拉面' },
+        { emoji:'🥟', name:'点心' },{ emoji:'🍛', name:'咖喱' },{ emoji:'🌮', name:'墨西哥卷' },
+        { emoji:'🍤', name:'海鲜' },{ emoji:'🥗', name:'轻食' },{ emoji:'🍰', name:'甜品' },
+      ];
+      grid.innerHTML = '';
+      selectedFoods.clear();
+      updateFoodTags();
+
+      foods.forEach(f => {
+        const chip = document.createElement('div');
+        chip.className = 'food-chip';
+        chip.innerHTML = `<span class="food-emoji">${f.emoji}</span>${f.name}`;
+        chip.addEventListener('click', () => {
+          if (selectedFoods.has(f.name)) {
+            selectedFoods.delete(f.name);
+            chip.classList.remove('selected');
+          } else {
+            selectedFoods.add(f.name);
+            chip.classList.add('selected');
+          }
+          updateFoodTags();
+        });
+        grid.appendChild(chip);
+      });
+
+      document.getElementById('customFood').value = '';
+    }
+
+    document.getElementById('customFood').addEventListener('input', function() {
+      updateFoodTags();
+    });
+
+    function updateFoodTags() {
+      const tags = document.getElementById('selectedFoodsTags');
+      const arr = Array.from(selectedFoods);
+      const custom = document.getElementById('customFood').value.trim();
+      if (arr.length === 0 && !custom) { tags.innerHTML = ''; return; }
+      let html = '<span style="font-size:12px; color:#ad1457;">已选：</span>';
+      arr.forEach(f => { html += `<span class="picked-tag">${f}</span> `; });
+      if (custom) html += `<span class="picked-tag">✏️ ${custom}</span>`;
+      tags.innerHTML = html;
+    }
+
+    // ===== 提交 =====
+    const btnSubmit = document.getElementById('btnSubmit');
+    const loading2 = document.getElementById('loading2');
+    const resultLinkBox = document.getElementById('resultLinkBox');
+    const resultLink = document.getElementById('resultLink');
+
+    btnSubmit.addEventListener('click', async () => {
+      const customVal = document.getElementById('customFood').value.trim();
+      const allFoods = Array.from(selectedFoods);
+      if (customVal) allFoods.push(customVal);
+      if (allFoods.length === 0) {
+        showToast('🍽️ 至少选一个想吃的吧～');
+        return;
+      }
+
+      btnSubmit.classList.add('hidden');
+      document.getElementById('btnBackDateTime').classList.add('hidden');
+      loading2.classList.remove('hidden');
+
+      try {
+        const { error } = await supabase
+          .from('invitations')
+          .update({
+            status: 'accepted',
+            selected_date: selectedDateStr,
+            selected_food: allFoods.join('、'),
+          })
+          .eq('id', invitationId);
+
+        if (error) throw error;
+
+        const baseUrl = window.location.origin + window.location.pathname.replace('invite.html', '');
+        resultLink.textContent = baseUrl + 'result.html?id=' + invitationId;
+        loading2.classList.add('hidden');
+        resultLinkBox.classList.remove('hidden');
+      } catch (err) {
+        loading2.classList.add('hidden');
+        btnSubmit.classList.remove('hidden');
+        document.getElementById('btnBackDateTime').classList.remove('hidden');
+        console.error(err);
+        showToast('❌ 提交失败：' + (err?.message || '请重试'));
+      }
+    });
+
+    // ===== 复制结果 =====
+    window.copyResultLink = function() {
+      navigator.clipboard.writeText(resultLink.textContent).then(() => {
+        const btn = document.getElementById('btnCopyResult');
+        btn.textContent = '✅ 已复制！';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 复制链接'; btn.classList.remove('copied'); }, 2000);
+        showToast('✅ 链接已复制，发给 Ta 吧！');
+      }).catch(() => showToast('复制失败，请手动选中链接复制'));
+    };
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2500);
+    }
+  </script>
+</body>
+</html>

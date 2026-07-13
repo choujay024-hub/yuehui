@@ -1,0 +1,654 @@
+/* ========================================
+   💝 约会邀请小程序 — 恋爱甜蜜风
+   ======================================== */
+
+/* --- 基础设置 --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 30%, #f48fb1 60%, #fce4ec 100%);
+  background-size: 400% 400%;
+  animation: bgShift 12s ease infinite;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+@keyframes bgShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* --- 浮动爱心背景 --- */
+.hearts-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.heart-float {
+  position: absolute;
+  animation: floatUp 8s ease-in infinite;
+  opacity: 0.3;
+  font-size: 24px;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-10vh) scale(1.5) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* --- 主卡片 --- */
+.card {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 48px 36px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 8px 32px rgba(244, 143, 177, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: cardIn 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- 图标 --- */
+.card-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* --- 标题 --- */
+.card h1 {
+  font-size: 28px;
+  color: #d81b60;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.card .subtitle {
+  font-size: 15px;
+  color: #ad1457;
+  margin-bottom: 28px;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+/* --- 输入框 --- */
+.input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  font-size: 14px;
+  color: #880e4f;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.input-group input,
+.input-group textarea {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid #f8bbd0;
+  border-radius: 16px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff5f7;
+  color: #4a0024;
+  transition: all 0.3s;
+  outline: none;
+  resize: none;
+}
+
+.input-group input:focus,
+.input-group textarea:focus {
+  border-color: #ec407a;
+  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.12);
+  background: #fff;
+}
+
+.input-group textarea {
+  min-height: 80px;
+}
+
+/* --- 按钮通用 --- */
+.btn {
+  display: inline-block;
+  padding: 16px 40px;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  text-decoration: none;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+/* 主按钮（接受/生成） */
+.btn-primary {
+  background: linear-gradient(135deg, #ec407a, #e91e63);
+  color: white;
+  box-shadow: 0 6px 24px rgba(233, 30, 99, 0.4);
+  letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 32px rgba(233, 30, 99, 0.55);
+  transform: translateY(-2px);
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn-primary:hover::after {
+  opacity: 1;
+}
+
+/* 拒绝按钮 */
+.btn-reject {
+  background: linear-gradient(135deg, #bdbdbd, #9e9e9e);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+/* --- 按钮容器 --- */
+.btn-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 28px;
+  flex-wrap: wrap;
+  min-height: 60px;
+}
+
+/* --- 日期选择 --- */
+.date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.date-chip {
+  padding: 14px 10px;
+  border: 2px solid #f8bbd0;
+  border-radius: 16px;
+  background: #fff5f7;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  font-size: 13px;
+  color: #880e4f;
+}
+
+.date-chip:hover {
+  border-color: #ec407a;
+  background: #fce4ec;
+  transform: translateY(-2px);
+}
+
+.date-chip.selected {
+  background: linear-gradient(135deg, #ec407a, #e91e63);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.35);
+}
+
+.date-chip .day-name {
+  font-weight: 700;
+  font-size: 16px;
+  display: block;
+}
+
+.date-chip .day-date {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 4px;
+  display: block;
+}
+
+/* --- 食物选择 --- */
+.food-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.food-chip {
+  padding: 14px 10px;
+  border: 2px solid #f8bbd0;
+  border-radius: 16px;
+  background: #fff5f7;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  font-size: 15px;
+  color: #880e4f;
+}
+
+.food-chip:hover {
+  border-color: #ec407a;
+  background: #fce4ec;
+  transform: translateY(-2px);
+}
+
+.food-chip.selected {
+  background: linear-gradient(135deg, #ec407a, #e91e63);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.35);
+}
+
+.food-chip .food-emoji {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+/* --- 自定义输入 --- */
+.custom-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px dashed #f8bbd0;
+  border-radius: 16px;
+  font-size: 15px;
+  background: #fff5f7;
+  color: #880e4f;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+
+.custom-input:focus {
+  border-color: #ec407a;
+  border-style: solid;
+  background: #fff;
+}
+
+.custom-input::placeholder {
+  color: #e0a0b4;
+}
+
+/* --- 结果卡片 --- */
+.result-card {
+  background: linear-gradient(135deg, #fff5f7, #fce4ec);
+  border: 2px solid #f8bbd0;
+  border-radius: 24px;
+  padding: 32px 24px;
+  margin: 24px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-card::before {
+  content: '🎉';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  font-size: 80px;
+  opacity: 0.15;
+  transform: rotate(20deg);
+}
+
+.result-item {
+  margin-bottom: 16px;
+  font-size: 17px;
+  color: #6a1b3a;
+}
+
+.result-item strong {
+  color: #d81b60;
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.result-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #880e4f;
+}
+
+/* --- 链接展示 --- */
+.link-box {
+  background: #fff5f7;
+  border: 2px dashed #ec407a;
+  border-radius: 16px;
+  padding: 18px;
+  margin-top: 24px;
+  word-break: break-all;
+  font-size: 14px;
+  color: #c2185b;
+  position: relative;
+}
+
+.link-box .link-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ad1457;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.btn-copy {
+  margin-top: 12px;
+  padding: 10px 28px;
+  border-radius: 50px;
+  background: #fff;
+  border: 2px solid #ec407a;
+  color: #ec407a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+
+.btn-copy:hover {
+  background: #ec407a;
+  color: white;
+}
+
+.btn-copy.copied {
+  background: #4caf50;
+  border-color: #4caf50;
+  color: white;
+}
+
+/* --- 画面容器 --- */
+.screen-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- 独立画面 --- */
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+  animation: screenEnter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 前进：从右边滑入 */
+@keyframes screenEnter {
+  from { transform: translateX(50px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* 退出（往左走） */
+.screen.exit-left {
+  display: block;
+  animation: screenExitLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes screenExitLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-60px); opacity: 0; }
+}
+
+/* 返回（往右退） */
+.screen.exit-right {
+  display: block;
+  animation: screenExitRight 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes screenExitRight {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(60px); opacity: 0; }
+}
+
+/* 返回时新画面从左边进来 */
+.screen.enter-left {
+  animation: screenEnterLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes screenEnterLeft {
+  from { transform: translateX(-50px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* --- 日期选择器 --- */
+.date-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.nice-select {
+  padding: 12px 8px;
+  border: 2px solid #f8bbd0;
+  border-radius: 14px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff5f7;
+  color: #880e4f;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s;
+  min-width: 70px;
+  appearance: auto;
+}
+
+.nice-select:focus {
+  border-color: #ec407a;
+  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.12);
+  background: #fff;
+}
+
+.nice-select:hover {
+  border-color: #ec407a;
+}
+
+.picker-label {
+  font-size: 14px;
+  color: #ad1457;
+  font-weight: 600;
+}
+
+/* --- 返回按钮 --- */
+.btn-back {
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: #ad1457;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+  font-family: inherit;
+}
+
+.btn-back:hover {
+  opacity: 1;
+}
+
+/* --- 已选食物标签 --- */
+.selected-foods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* --- 选中状态标签 --- */
+.picked-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #ec407a, #e91e63);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* --- 响应式 --- */
+@media (max-width: 480px) {
+  .card {
+    padding: 36px 20px;
+    border-radius: 24px;
+  }
+
+  .card h1 {
+    font-size: 24px;
+  }
+
+  .card-icon {
+    font-size: 48px;
+  }
+
+  .btn {
+    padding: 14px 32px;
+    font-size: 16px;
+  }
+
+  .date-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .food-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+/* --- 隐藏类 --- */
+.hidden {
+  display: none !important;
+}
+
+/* --- 加载动画 --- */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #fce4ec;
+  border-top-color: #ec407a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Toast 提示 --- */
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-size: 14px;
+  z-index: 999;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+}
+
+/* --- 错误页 --- */
+.error-state {
+  color: #b71c1c;
+}
+
+.error-state .card-icon {
+  animation: none;
+}
+
+/* --- 脉冲心跳 --- */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.25); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.15); }
+  60% { transform: scale(1); }
+}
+
+.heartbeat {
+  animation: heartbeat 1.2s ease-in-out infinite;
+  display: inline-block;
+}

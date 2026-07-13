@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💝 约会邀请</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 浮动爱心背景 -->
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <!-- 主卡片 -->
+  <div class="card">
+    <div class="card-icon">💌</div>
+    <h1>发出约会邀请</h1>
+    <p class="subtitle">写一句话，生成链接发给 Ta<br>看看 Ta 会不会答应你 ✨</p>
+
+    <!-- 输入邀请语 -->
+    <div class="input-group">
+      <label for="message">你的邀请语</label>
+      <textarea id="message" placeholder="比如：嗨，可以一起吃个饭嘛～想认识你很久了！" maxlength="200" rows="3">嗨，可以一起吃个饭嘛～</textarea>
+    </div>
+
+    <!-- 生成按钮 -->
+    <button class="btn btn-primary" id="btnCreate" style="width:100%;">
+      ✨ 生成邀请链接
+    </button>
+
+    <!-- 生成的链接 -->
+    <div id="linkResult" class="hidden">
+      <div class="link-box">
+        <span class="link-label">📋 复制这个链接发给 Ta</span>
+        <span id="inviteLink"></span>
+      </div>
+      <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制链接</button>
+      <p style="margin-top:16px; font-size:13px; color:#ad1457; opacity:0.7;">
+        Ta 填好后会生成一个结果链接发回给你 💕
+      </p>
+    </div>
+
+    <!-- 加载中 -->
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p style="color:#ad1457;">正在生成...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // ===== Supabase 配置 =====
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const supabase = createClient(
+      'https://lajhfebszkkpvdjeyock.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhamhmZWJzemtrcHZkamV5b2NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NjE0MzYsImV4cCI6MjA5OTQzNzQzNn0.p7ovoAFm1wjpDHaEisbrZFMMl2Z66443GZHGRBdrW_E'
+    );
+
+    // ===== 浮动爱心背景 =====
+    (function createHearts() {
+      const container = document.getElementById('heartsBg');
+      const emojis = ['❤️', '💕', '💖', '💗', '💝', '✨', '💐', '🌸'];
+      for (let i = 0; i < 15; i++) {
+        const span = document.createElement('span');
+        span.className = 'heart-float';
+        span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        span.style.left = Math.random() * 100 + '%';
+        span.style.animationDelay = Math.random() * 8 + 's';
+        span.style.animationDuration = (6 + Math.random() * 8) + 's';
+        span.style.fontSize = (18 + Math.random() * 28) + 'px';
+        container.appendChild(span);
+      }
+    })();
+
+    // ===== 生成邀请链接 =====
+    const btnCreate = document.getElementById('btnCreate');
+    const linkResult = document.getElementById('linkResult');
+    const loading = document.getElementById('loading');
+    const inviteLink = document.getElementById('inviteLink');
+
+    btnCreate.addEventListener('click', async () => {
+      const message = document.getElementById('message').value.trim();
+      if (!message) {
+        showToast('💬 先写一句邀请语吧～');
+        return;
+      }
+
+      btnCreate.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      try {
+        const { data, error } = await supabase
+          .from('invitations')
+          .insert([{ message }])
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+        const url = baseUrl + 'invite.html?id=' + data.id;
+        inviteLink.textContent = url;
+
+        loading.classList.add('hidden');
+        linkResult.classList.remove('hidden');
+      } catch (err) {
+        loading.classList.add('hidden');
+        btnCreate.classList.remove('hidden');
+        console.error(err);
+        const msg = err?.message || err?.error_description || JSON.stringify(err);
+        showToast('❌ 生成失败：' + msg);
+      }
+    });
+
+    // ===== 复制链接 =====
+    window.copyLink = function() {
+      const text = inviteLink.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btnCopy');
+        btn.textContent = '✅ 已复制！';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 复制链接'; btn.classList.remove('copied'); }, 2000);
+        showToast('✅ 链接已复制，快去发给 Ta 吧！');
+      }).catch(() => showToast('复制失败，请手动选中链接复制'));
+    };
+
+    // ===== Toast =====
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+  </script>
+</body>
+</html>
